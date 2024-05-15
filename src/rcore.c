@@ -845,7 +845,7 @@ void BeginDrawing(void)
 }
 
 // End canvas drawing and swap buffers (double buffering)
-void EndDrawing(void)
+void EndDrawing(bool customFrameControl)
 {
     rlDrawRenderBatchActive();      // Update and draw internal render batch
 
@@ -894,30 +894,30 @@ void EndDrawing(void)
     if (automationEventRecording) RecordAutomationEvent();    // Event recording
 #endif
 
-#if !defined(SUPPORT_CUSTOM_FRAME_CONTROL)
-    SwapScreenBuffer();                  // Copy back buffer to front buffer (screen)
+    if (!customFrameControl) {
+        SwapScreenBuffer();                  // Copy back buffer to front buffer (screen)
 
-    // Frame time control system
-    CORE.Time.current = GetTime();
-    CORE.Time.draw = CORE.Time.current - CORE.Time.previous;
-    CORE.Time.previous = CORE.Time.current;
-
-    CORE.Time.frame = CORE.Time.update + CORE.Time.draw;
-
-    // Wait for some milliseconds...
-    if (CORE.Time.frame < CORE.Time.target)
-    {
-        WaitTime(CORE.Time.target - CORE.Time.frame);
-
+        // Frame time control system
         CORE.Time.current = GetTime();
-        double waitTime = CORE.Time.current - CORE.Time.previous;
+        CORE.Time.draw = CORE.Time.current - CORE.Time.previous;
         CORE.Time.previous = CORE.Time.current;
 
-        CORE.Time.frame += waitTime;    // Total frame time: update + draw + wait
-    }
+        CORE.Time.frame = CORE.Time.update + CORE.Time.draw;
 
-    PollInputEvents();      // Poll user events (before next frame update)
-#endif
+        // Wait for some milliseconds...
+        if (CORE.Time.frame < CORE.Time.target)
+        {
+            WaitTime(CORE.Time.target - CORE.Time.frame);
+
+            CORE.Time.current = GetTime();
+            double waitTime = CORE.Time.current - CORE.Time.previous;
+            CORE.Time.previous = CORE.Time.current;
+
+            CORE.Time.frame += waitTime;    // Total frame time: update + draw + wait
+        }
+
+        PollInputEvents();      // Poll user events (before next frame update)
+    }
 
 #if defined(SUPPORT_SCREEN_CAPTURE)
     if (IsKeyPressed(KEY_F12))
